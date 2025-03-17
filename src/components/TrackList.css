@@ -1,0 +1,75 @@
+/* src/components/TrackList.css */
+.track-list {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.track-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.track-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background-color: #ffffff;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.track-item:hover {
+    background-color: #f0f0f0;
+}
+
+.track-item.active {
+    background-color: #e0e7ff;
+}
+
+.track-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.track-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.track-artist {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.track-album {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.track-controls {
+    display: flex;
+    align-items: center;
+}
+
+.track-status {
+    margin-right: 10px;
+    color: #4f46e5;
+}
+
+.track-play-count {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.track-status svg {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+  }
+  

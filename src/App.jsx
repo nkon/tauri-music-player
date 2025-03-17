@@ -1,50 +1,193 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import TrackList from './components/TrackList';
+import PlayerControls from './components/PlayerControls';
+import ServerControls from './components/ServerControls'
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [tracks, setTracks] = useState([]);
+  const [currentTrack, setCurrentTrack] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isShuffleMode, setIsShuffleMode] = useState(false);
+  const [serverUrl, setServerUrl] = useState('');
+  const [isServerRunning, setIsServerRunning] = useState(false);
+  const audioRef = useRef(new Audio());
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  // HTTPサーバーの起動
+  const startServer = async () => {
+    try {
+      await invoke('start_http_server');
+      const url = await invoke('get_server_url');
+      setServerUrl(url);
+      setIsServerRunning(true);
+    } catch (error) {
+      console.error('Failed to start server:', error);
+    }
+    fetchTracks();
+  };
+
+  // HTTPサーバーの停止
+  const stopServer = async () => {
+    try {
+      await invoke('stop_http_server');
+      setServerUrl('');
+      setIsServerRunning(false);
+    } catch (error) {
+      console.error('Failed to stop server:', error);
+    }
+  };
+
+
+
+  // 楽曲再生処理
+  const playTrack = async (track) => {
+    if (currentTrack && currentTrack.id === track.id && isPlaying) {
+      // すでに再生中の曲をタップした場合は一時停止
+      audioRef.current.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    setCurrentTrack(track);
+
+    // タウリコマンドでファイルパスを取得
+    try {
+      // オーディオ要素を更新して再生
+      const url = await invoke('get_server_url');
+      // const url="http://127.0.0.1:3030"; これではうまく動かない。warpがこのアドレスにはバインドされていないのだろう
+      audioRef.current.src = url + "/stream/" + track.id;
+      console.error('Now playing:', audioRef.current.src);
+      audioRef.current.play();
+      setIsPlaying(true);
+
+      // 再生回数を増加
+      // await invoke('increment_play_count', { id: track.id });
+
+      // 表示を更新するため楽曲リストを再取得
+      fetchTracks();
+    } catch (error) {
+      console.error('Failed to play track:', error);
+    }
+  };
+
+  // 次の曲を再生
+  const playNextTrack = () => {
+    if (!currentTrack || tracks.length === 0) return;
+
+    let nextTrackIndex;
+
+    if (isShuffleMode) {
+      // ランダムモードの場合、ランダムに選択
+      nextTrackIndex = Math.floor(Math.random() * tracks.length);
+    } else {
+      // 通常モードの場合、次の曲
+      const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
+      nextTrackIndex = (currentIndex + 1) % tracks.length;
+    }
+
+    playTrack(tracks[nextTrackIndex]);
+  };
+
+  // 前の曲を再生
+  const playPreviousTrack = () => {
+    if (!currentTrack || tracks.length === 0) return;
+
+    const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
+    let prevTrackIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+
+    playTrack(tracks[prevTrackIndex]);
+  };
+
+  // 再生/一時停止の切り替え
+  const togglePlay = () => {
+    if (!currentTrack) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+
+    setIsPlaying(!isPlaying);
+  };
+
+  // 最初から再生
+  const restartTrack = () => {
+    if (!currentTrack) return;
+
+    audioRef.current.currentTime = 0;
+    audioRef.current.play();
+    setIsPlaying(true);
+  };
+
+  // 楽曲リストの取得
+  const fetchTracks = async () => {
+    try {
+      const response = await invoke('get_tracks');
+      setTracks(response.tracks);
+    } catch (error) {
+      console.error('Failed to fetch tracks:', error);
+    }
+  };
+
+  // コンポーネントマウント時に楽曲リストを取得
+  useEffect(() => {
+    fetchTracks();
+
+    if (!isServerRunning) {
+      startServer();
+    }
+
+    // 再生終了時の処理
+    const handleEnded = () => {
+      playNextTrack();
+    };
+
+    audioRef.current.addEventListener('ended', handleEnded);
+
+    return () => {
+      audioRef.current.removeEventListener('ended', handleEnded);
+    };
+  }, []);
+
+
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div className="app-container">
+      <h1>音楽プレイヤー</h1>
 
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+      <ServerControls
+        isRunning={isServerRunning}
+        url={serverUrl}
+        onStart={startServer}
+        onStop={stopServer}
+      />
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+      <div className="player-section">
+        <PlayerControls
+          isPlaying={isPlaying}
+          onPlay={togglePlay}
+          onPause={togglePlay}
+          onNext={playNextTrack}
+          onPrevious={playPreviousTrack}
+          onRestart={restartTrack}
+          onShuffleToggle={() => setIsShuffleMode(!isShuffleMode)}
+          isShuffleMode={isShuffleMode}
+          currentTrack={currentTrack}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      </div>
+
+      <div className="track-list-section">
+        <TrackList
+          tracks={tracks}
+          currentTrack={currentTrack}
+          onTrackSelect={playTrack}
+          isPlaying={isPlaying}
+        />
+      </div>
+    </div>
+
   );
 }
 

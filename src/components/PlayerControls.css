@@ -1,0 +1,81 @@
+/* src/components/PlayerControls.css */
+.player-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.now-playing {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.now-playing h3 {
+  margin-bottom: 5px;
+}
+
+.now-playing p {
+  color: #666;
+  margin: 0;
+}
+
+.controls-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.controls-buttons button {
+  background: none;
+  border: none;
+  margin: 0 10px;
+  cursor: pointer;
+  color: #333;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  font-size: 18px;
+  -webkit-appearance: none;
+  padding: 0;
+}
+
+/* Font Awesomeアイコンのサイズを明示的に設定 */
+.controls-buttons button svg {
+  width: 18px;
+  height: 18px;
+  /* iOS Safariでのアイコンサイズを保証 */
+  min-width: 18px;
+  min-height: 18px;
+}
+
+.controls-buttons button:hover {
+  background-color: #e0e0e0;
+}
+
+.controls-buttons button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.play-button {
+  background-color: #4f46e5 !important;
+  color: white !important;
+  width: 50px !important;
+  height: 50px !important;
+}
+
+.play-button:hover {
+  background-color: #4338ca !important;
+}
+
+.play-button:disabled {
+  background-color: #a5a5a5 !important;
+}
+
+.shuffle-button.active {
+  color: #4f46e5 !important;
+}
