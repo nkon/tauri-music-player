@@ -4,7 +4,7 @@ use bytes::Buf;
 use futures::TryStreamExt;
 use std::fs::{self, File};
 use std::io::Write;
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tauri::AppHandle;
@@ -46,6 +46,12 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
         .and(app_handle_filter.clone())
         .and_then(handle_index);
 
+    // ルートページ - ファイルアップロードフォーム
+    let index2 = warp::path::end()
+        .and(warp::get())
+        .and(app_handle_filter.clone())
+        .and_then(handle_index2);
+
     // ファイルアップロード処理
     let upload = warp::path("upload")
         .and(warp::post())
@@ -67,7 +73,8 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
         .and(app_handle_filter.clone())
         .and_then(handle_stream);
 
-    let routes = index.or(upload).or(delete).or(stream);
+    // let routes = index.or(upload).or(delete).or(stream);
+    let routes = index.or(upload).or(delete);
 
     // 停止用のチャネル
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
@@ -84,6 +91,13 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
 
         server.await;
         println!("HTTP server stopped");
+    });
+
+    // サーバーを別スレッドで起動
+    tokio::spawn(async move {
+        let addr2 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 3031);
+        println!("Starting HTTP server2 on {}", addr2);
+        warp::serve(index2.or(stream)).bind(addr2).await;
     });
 
     Ok(())
@@ -202,6 +216,27 @@ async fn handle_index(app_handle: AppHandle) -> Result<impl Reply, Rejection> {
         .body(html))
 }
 
+async fn handle_index2(_app_handle: AppHandle) -> Result<impl Reply, Rejection> {
+    let html = String::from(
+        r#"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>音楽プレイヤーストリーミング</title>
+    </head>
+    <body>
+        <h1>音楽プレイヤーストリーミング</h1>
+    </body>
+    </html>
+    "#,
+    );
+
+    Ok(Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "text/html; charset=utf-8")
+        .body(html))
+}
+
 async fn handle_upload(mut form: FormData, app_handle: AppHandle) -> Result<impl Reply, Rejection> {
     let music_dir = get_music_dir(&app_handle).map_err(|e| {
         eprintln!("Error getting music directory: {}", e);
@@ -222,7 +257,7 @@ async fn handle_upload(mut form: FormData, app_handle: AppHandle) -> Result<impl
         println!("Receiving file: {}", file_name);
 
         // MP3ファイルのみ許可
-        if !(file_name.ends_with(".mp3")  || file_name.ends_with(".MP3")){
+        if !(file_name.ends_with(".mp3") || file_name.ends_with(".MP3")) {
             continue;
         }
 

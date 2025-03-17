@@ -54,8 +54,8 @@ function App() {
     // タウリコマンドでファイルパスを取得
     try {
       // オーディオ要素を更新して再生
-      const url = await invoke('get_server_url');
-      // const url="http://127.0.0.1:3030"; これではうまく動かない。warpがこのアドレスにはバインドされていないのだろう
+      // const url = await invoke('get_server_url');
+      const url="http://127.0.0.1:3031"; // Streamはこちらに接続
       audioRef.current.src = url + "/stream/" + track.id;
       console.error('Now playing:', audioRef.current.src);
       audioRef.current.play();
