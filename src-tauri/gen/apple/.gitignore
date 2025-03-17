@@ -1,0 +1,6 @@
+xcuserdata/
+build/
+Externals/
+
+#include credentials
+tauri-music-player.xcodeproj/project.pbxproj
