@@ -29,7 +29,7 @@ futures = "0.3"           # 非同期処理
 bytes = "1.0"             # バイト処理
 tempfile = "3.3"          # 一時ファイル
 lazy_static = "1.5.0"
-local-ip-address = {version = "0.6.3", path = "../../local-ip-address" }
+local-ip-address = {version = "0.6.3", git = "https://github.com/LeoBorai/local-ip-address" }
 tokio-util = "0.7.14"
 hyper = { version = "1.6.0", features = ["full"] }
 http-body-util = "0.1"
