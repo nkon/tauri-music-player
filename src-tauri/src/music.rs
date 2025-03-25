@@ -1,5 +1,6 @@
 // src-tauri/src/music.rs
 use id3::{Tag, TagLike};
+use id3::v1::Tag as V1Tag;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
@@ -79,6 +80,18 @@ pub fn get_all_tracks(app_handle: &AppHandle) -> Result<Vec<Track>, io::Error> {
                     title: tag.title().map(|s| s.to_string()),
                     artist: tag.artist().map(|s| s.to_string()),
                     album: tag.album().map(|s| s.to_string()),
+                    path: path.to_string_lossy().to_string(),
+                    play_count: 0,
+                });
+            } else if let Ok(tag) = V1Tag::read_from_path(&path) {
+                // 再生回数を取得
+                // let play_count = get_play_count(&stats_dir, &id)?;
+                tracks.push(Track {
+                    id,
+                    file_name,
+                    title: Some(tag.title),
+                    artist: Some(tag.artist),
+                    album: Some(tag.album),
                     path: path.to_string_lossy().to_string(),
                     play_count: 0,
                 });
