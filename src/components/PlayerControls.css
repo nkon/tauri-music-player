@@ -77,5 +77,10 @@
 }
 
 .shuffle-button.active {
-  color: #4f46e5 !important;
+  color: white !important;
+  background-color: #4f46e5 !important;
+}
+
+.shuffle-button.sequential {
+  color: #333 !important;
 }

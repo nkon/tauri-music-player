@@ -1,6 +1,6 @@
 // src/components/PlayerControls.jsx
 import React from 'react';
-import { FaPlay, FaPause, FaStepForward, FaStepBackward, FaRedo, FaRandom } from 'react-icons/fa';
+import { FaPlay, FaPause, FaStepForward, FaStepBackward, FaRedo, FaRandom, FaUndo } from 'react-icons/fa';
 import './PlayerControls.css';
 
 const PlayerControls = ({
@@ -28,11 +28,8 @@ const PlayerControls = ({
       </div>
 
       <div className="controls-buttons">
-        <button onClick={onPrevious} disabled={!currentTrack}>
-          <FaStepBackward />
-        </button>
         <button onClick={onRestart} disabled={!currentTrack}>
-          <FaRedo />
+          <FaUndo />
         </button>
         <button onClick={isPlaying ? onPause : onPlay} disabled={!currentTrack} className="play-button">
           {isPlaying ? <FaPause /> : <FaPlay />}
@@ -42,7 +39,7 @@ const PlayerControls = ({
         </button>
         <button
           onClick={onShuffleToggle}
-          className={`shuffle-button ${isShuffleMode ? 'active' : ''}`}
+          className={`shuffle-button ${isShuffleMode ? 'active' : 'sequential'}`}
         >
           <FaRandom />
         </button>
