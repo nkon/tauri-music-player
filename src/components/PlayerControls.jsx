@@ -1,5 +1,5 @@
 // src/components/PlayerControls.jsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FaPlay, FaPause, FaStepForward, FaStepBackward, FaRedo, FaRandom, FaUndo } from 'react-icons/fa';
 import './PlayerControls.css';
 
@@ -14,6 +14,21 @@ const PlayerControls = ({
   isShuffleMode,
   currentTrack
 }) => {
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentTrack) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.title || currentTrack.file_name,
+        artist: currentTrack.artist || 'Unknown Artist',
+        album: currentTrack.album || 'Unknown Album',
+      });
+
+      navigator.mediaSession.setActionHandler('play', onPlay);
+      navigator.mediaSession.setActionHandler('pause', onPause);
+      navigator.mediaSession.setActionHandler('previoustrack', onRestart);
+      navigator.mediaSession.setActionHandler('nexttrack', onNext);
+    }
+  }, [currentTrack, onPlay, onPause, onNext, onPrevious]);
+
   return (
     <div className="player-controls">
       <div className="now-playing">
