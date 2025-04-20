@@ -31,6 +31,28 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
     }
 
     let app_handle_clone = app_handle.clone();
+    let app_handle_filter = warp::any().map(move || app_handle_clone.clone());
+
+    // ルートページ - ファイルアップロードフォーム
+    let index2 = warp::path::end()
+        .and(warp::get())
+        .and(app_handle_filter.clone())
+        .and_then(handle_index2);
+
+    // MP3ファイルのストリーミング
+    let stream = warp::path("stream")
+        .and(warp::path::param::<String>())
+        .and(warp::get())
+        .and(app_handle_filter.clone())
+        .and_then(handle_stream);
+
+    // サーバーを別スレッドで起動
+    tokio::spawn(async move {
+        let addr2 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 3031);
+        println!("Starting HTTP server2 on {}", addr2);
+        warp::serve(index2.or(stream)).bind(addr2).await;
+    });
+
     let music_dir = get_music_dir(&app_handle).map_err(|e| e.to_string())?;
     println!("music_dir: {}", music_dir.to_string_lossy());
 
@@ -38,19 +60,11 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
     let ip = local_ip_address::local_ip().map_err(|e| e.to_string())?;
     let addr = SocketAddr::new(ip, 3030);
 
-    let app_handle_filter = warp::any().map(move || app_handle_clone.clone());
-
     // ルートページ - ファイルアップロードフォーム
     let index = warp::path::end()
         .and(warp::get())
         .and(app_handle_filter.clone())
         .and_then(handle_index);
-
-    // ルートページ - ファイルアップロードフォーム
-    let index2 = warp::path::end()
-        .and(warp::get())
-        .and(app_handle_filter.clone())
-        .and_then(handle_index2);
 
     // ファイルアップロード処理
     let upload = warp::path("upload")
@@ -65,13 +79,6 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
         .and(warp::body::form())
         .and(app_handle_filter.clone())
         .and_then(handle_delete);
-
-    // MP3ファイルのストリーミング
-    let stream = warp::path("stream")
-        .and(warp::path::param::<String>())
-        .and(warp::get())
-        .and(app_handle_filter.clone())
-        .and_then(handle_stream);
 
     // let routes = index.or(upload).or(delete).or(stream);
     let routes = index.or(upload).or(delete);
@@ -91,13 +98,6 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
 
         server.await;
         println!("HTTP server stopped");
-    });
-
-    // サーバーを別スレッドで起動
-    tokio::spawn(async move {
-        let addr2 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 3031);
-        println!("Starting HTTP server2 on {}", addr2);
-        warp::serve(index2.or(stream)).bind(addr2).await;
     });
 
     Ok(())

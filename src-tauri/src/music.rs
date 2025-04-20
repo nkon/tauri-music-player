@@ -1,6 +1,6 @@
 // src-tauri/src/music.rs
-use id3::{Tag, TagLike};
 use id3::v1::Tag as V1Tag;
+use id3::{Tag, TagLike};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
