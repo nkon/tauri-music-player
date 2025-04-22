@@ -24,14 +24,8 @@ struct ServerState {
     shutdown_tx: oneshot::Sender<()>,
 }
 
-pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
-    let mut state = SERVER_STATE.lock().unwrap();
-    if state.is_some() {
-        return Err("Server is already running".to_string());
-    }
-
-    let app_handle_clone = app_handle.clone();
-    let app_handle_filter = warp::any().map(move || app_handle_clone.clone());
+fn start_streaming_server(app_handle: AppHandle) {
+    let app_handle_filter = warp::any().map(move || app_handle.clone());
 
     // ルートページ - ファイルアップロードフォーム
     let index2 = warp::path::end()
@@ -46,19 +40,27 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
         .and(app_handle_filter.clone())
         .and_then(handle_stream);
 
+    let routes = index2.or(stream);
+
     // サーバーを別スレッドで起動
     tokio::spawn(async move {
         let addr2 = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 3031);
         println!("Starting HTTP server2 on {}", addr2);
-        warp::serve(index2.or(stream)).bind(addr2).await;
+        warp::serve(routes).bind(addr2).await;
     });
+}
 
-    let music_dir = get_music_dir(&app_handle).map_err(|e| e.to_string())?;
+fn start_upload_server(
+    app_handle: AppHandle,
+    addr: SocketAddr,
+    shutdown_rx: oneshot::Receiver<()>,
+) {
+    let music_dir = get_music_dir(&app_handle)
+        .map_err(|e| e.to_string())
+        .unwrap();
     println!("music_dir: {}", music_dir.to_string_lossy());
 
-    // ローカルIPアドレスの取得
-    let ip = local_ip_address::local_ip().map_err(|e| e.to_string())?;
-    let addr = SocketAddr::new(ip, 3030);
+    let app_handle_filter = warp::any().map(move || app_handle.clone());
 
     // ルートページ - ファイルアップロードフォーム
     let index = warp::path::end()
@@ -80,14 +82,7 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
         .and(app_handle_filter.clone())
         .and_then(handle_delete);
 
-    // let routes = index.or(upload).or(delete).or(stream);
     let routes = index.or(upload).or(delete);
-
-    // 停止用のチャネル
-    let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
-
-    // サーバー情報を保存
-    *state = Some(ServerState { addr, shutdown_tx });
 
     // サーバーを別スレッドで起動
     tokio::spawn(async move {
@@ -99,6 +94,27 @@ pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
         server.await;
         println!("HTTP server stopped");
     });
+}
+
+pub async fn start_server(app_handle: AppHandle) -> Result<(), String> {
+    let mut state = SERVER_STATE.lock().unwrap();
+    if state.is_some() {
+        return Err("Server is already running".to_string());
+    }
+
+    start_streaming_server(app_handle.clone());
+
+    // 停止用のチャネル
+    let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+
+    // ローカルIPアドレスの取得
+    let ip = local_ip_address::local_ip().map_err(|e| e.to_string())?;
+    let addr = SocketAddr::new(ip, 3030);
+
+    start_upload_server(app_handle.clone(), addr, shutdown_rx);
+
+    // サーバー情報を保存
+    *state = Some(ServerState { addr, shutdown_tx });
 
     Ok(())
 }
