@@ -400,6 +400,7 @@ async fn handle_stream(file_id: String, app_handle: AppHandle) -> Result<impl Re
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct ServerError(String);
 
 impl warp::reject::Reject for ServerError {}

@@ -1,7 +1,7 @@
 // src-tauri/src/commands.rs
 use crate::http::{get_url, start_server, stop_server};
 use crate::music::{get_all_tracks, Track};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::AppHandle;
 
 #[derive(Serialize)]
